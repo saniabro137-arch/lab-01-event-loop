@@ -1,0 +1,1 @@
+export function connectAudio(world,context,assets){for(const name of ['fired','hit','exploded'])world.addEventListener(name,()=>{if(context.state!=='running')return;const source=context.createBufferSource();source.buffer=assets[name];const gain=context.createGain();gain.gain.value=.22;source.connect(gain).connect(context.destination);source.start();});}

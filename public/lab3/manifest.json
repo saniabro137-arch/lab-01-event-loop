@@ -1,0 +1,1 @@
+[{"id": "sprites", "type": "image", "url": "/lab3/sprites.png"}, {"id": "fired", "type": "audio", "url": "/lab3/fired.wav"}, {"id": "hit", "type": "audio", "url": "/lab3/hit.wav"}, {"id": "exploded", "type": "audio", "url": "/lab3/exploded.wav"}, {"id": "config", "type": "json", "url": "/lab3/config.json"}]
