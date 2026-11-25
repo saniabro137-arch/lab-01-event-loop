@@ -1,3 +1,6 @@
+import { Match } from './match.js';
+import { decodeInput } from 'space-flight-shared/codec';
+import { validInputs } from 'space-flight-shared/protocol';
 import { createMatchLogger } from './logger.js';
 import { config } from './config.js';
 import { randomUUID } from 'node:crypto';
@@ -95,6 +98,15 @@ export function setupWebSocket(server, rooms) {
 
   wss.on('connection', socket => {
     let room = null;
+    let match = null;
+    let codec = null;
+    let gameTokens = 24;
+    let lastRefill = performance.now();
+
+    function handleInput(msg) {
+      if (!match || !validInputs(msg)) return socket.close(1008, 'Invalid input');
+      match.receive(socket, msg.inputs);
+    }
     let count = 0;
     let windowStart = Date.now();
 
@@ -115,30 +127,34 @@ export function setupWebSocket(server, rooms) {
     socket.on('message', (raw, binary) => {
       if (socket.readyState !== WebSocket.OPEN) return;
 
+      let msg;
+      try {
+        msg = binary ? decodeInput(raw) : JSON.parse(raw.toString());
+      } catch {
+        return socket.close(1007, 'Invalid payload');
+      }
+
+      if (!msg || typeof msg !== 'object' || Array.isArray(msg)) {
+        return socket.close(1008, 'Invalid message');
+      }
+      if (msg.type === 'input') {
+        const now = performance.now();
+        gameTokens = Math.min(24, gameTokens + (now - lastRefill) * 0.045);
+        lastRefill = now;
+        if (gameTokens < 1 || binary !== (codec === 'binary')) {
+          return socket.close(1008, 'Input format or rate limit');
+        }
+        gameTokens--;
+        return handleInput(msg);
+      }
+
       if (Date.now() - windowStart >= 1000) {
         count = 0;
         windowStart = Date.now();
       }
-
-      if (++count > 10) {
-        return socket.close(1008, 'Rate limit');
-      }
-
-      if (binary) {
-        return socket.close(1003, 'Text required');
-      }
-
-      let msg;
-
-      try {
-        msg = JSON.parse(raw.toString());
-      } catch {
-        return socket.close(1007, 'Invalid JSON');
-      }
-
-      if (!msg || typeof msg !== 'object' ||
-          Array.isArray(msg)) {
-        return socket.close(1008, 'Invalid message');
+      if (++count > 10) return socket.close(1008, 'Rate limit');
+      if (msg.type === 'ping' && match && Number.isFinite(msg.sent)) {
+        return send(socket, { type: 'pong', sent: msg.sent, time: Date.now() });
       }
 
       if (msg.type === 'join') {
@@ -153,7 +169,17 @@ export function setupWebSocket(server, rooms) {
           return socket.close(1008, 'Invalid join');
         }
 
-        room = rooms.get(msg.room);
+        const selected = rooms.get(msg.room);
+        let game;
+        if (msg.game === true) {
+          codec = msg.codec === 'json' ? 'json' : 'binary';
+          selected.match ??= new Match();
+          game = selected.match.join(socket, codec);
+          if (!game) return socket.close(1008, 'Match full');
+          match = selected.match;
+        }
+
+        room = selected;
         configureRoom(room);
         clearTimeout(joinTimer);
 
@@ -162,7 +188,8 @@ export function setupWebSocket(server, rooms) {
         send(socket, {
           type: 'joined',
           room: room.name,
-          players: [...room.players.values()]
+          players: [...room.players.values()],
+          game
         });
 
       } else if (msg.type === 'chat') {
@@ -182,6 +209,7 @@ export function setupWebSocket(server, rooms) {
           return socket.close(1008, 'Not joined');
         }
 
+        match?.leave(socket);
         room.leave(socket);
         room = null;
         socket.close(1000, 'Left room');
@@ -193,6 +221,7 @@ export function setupWebSocket(server, rooms) {
 
     socket.on('close', () => {
       clearTimeout(joinTimer);
+      match?.leave(socket);
       if (room) room.leave(socket);
     });
   });

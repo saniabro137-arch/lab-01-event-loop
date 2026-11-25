@@ -2,6 +2,7 @@ import { RoomSocket } from './socket.js';
 
 const $ = id => document.getElementById(id);
 const socket = new RoomSocket();
+export { socket };
 const players = new Set();
 
 function log(text) {
@@ -36,6 +37,8 @@ socket.addEventListener('status', event => {
 
 socket.addEventListener('message', event => {
   const data = event.detail;
+
+  if (data instanceof ArrayBuffer || ['snapshot', 'pong'].includes(data.type)) return;
 
   switch (data.type) {
     case 'joined':
@@ -87,7 +90,9 @@ $('join').onclick = async () => {
 
     players.clear();
     renderPlayers();
-    socket.connect(name, room);
+    const params = new URLSearchParams(location.search);
+    const options = $('arena') ? { game: true, codec: params.get('codec') } : {};
+    socket.connect(name, room, options);
   } catch (error) {
     log(error.message);
   }
