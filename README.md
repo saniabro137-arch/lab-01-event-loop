@@ -210,3 +210,49 @@ npm test
 
 ## Висновок
 Реалізовано обмін повідомленнями в реальному часі, керування кімнатами, логування NDJSON і потокову видачу журналів. Експеримент RSS показав обмежене зростання використання пам’яті під час передачі великого файлу.
+
+## Галерея результатів LAB 04
+
+### 1. Початковий інтерфейс
+
+![Початковий інтерфейс](docs/lab04/screenshots/01-lobby.png)
+
+### 2. Два гравці в кімнаті
+
+![Два гравці в кімнаті](docs/lab04/screenshots/02-two-players.png)
+
+### 3. Обмін повідомленнями
+
+![Обмін повідомленнями](docs/lab04/screenshots/03-chat.png)
+
+### 4. Вихід гравця
+
+![Вихід гравця](docs/lab04/screenshots/04-leave.png)
+
+### 5. Відключення клієнтів
+
+![Відключення клієнтів](docs/lab04/screenshots/05-disconnected.png)
+
+### 6. Перевірка HTTP /health
+
+![Перевірка HTTP /health](docs/lab04/screenshots/06-health.png)
+
+### 7. Логування NDJSON
+
+![Логування NDJSON](docs/lab04/screenshots/07-ndjson.png)
+
+### 8. Replay API
+
+![Replay API](docs/lab04/screenshots/08-replay.png)
+
+### 9. Потокова передача великого файлу
+
+![Потокова передача великого файлу](docs/lab04/screenshots/09-streaming.png)
+
+### 10. Вимірювання RSS
+
+![Вимірювання RSS](docs/lab04/screenshots/10-rss-results.png)
+
+### 11. Збірка та тестування
+
+![Збірка та тестування](docs/lab04/screenshots/11-build.png)
