@@ -4,6 +4,11 @@ import { resolve } from 'node:path';
 
 function rooms(server) {
   server.middlewares.use((req, res, next) => {
+    if (req.url?.split('?')[0] === '/lab3/missing.png') {
+      res.statusCode = 404;
+      res.end('Sprite not found');
+      return;
+    }
     if (req.url === '/api/rooms') {
       req.url = '/api/rooms.json';
     }
