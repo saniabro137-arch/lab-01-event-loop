@@ -72,12 +72,6 @@ const server = http.createServer(async (req, res) => {
       return await replay(matchId, res);
     }
 
-    if (req.method === 'GET' && pathname === '/api/stats') {
-      return json(res, 200, [...rooms.values()]
-        .filter(room => room.match?.players.size)
-        .map(room => ({ room: room.name, ...room.match.stats })));
-    }
-
     if (pathname === '/api/rooms') {
       if (req.method === 'GET') {
         return json(res, 200, [...rooms.values()].map(room => ({

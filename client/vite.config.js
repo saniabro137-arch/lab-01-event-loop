@@ -52,8 +52,7 @@ export default defineConfig({
         lab01: resolve('index.html'),
         lab02: resolve('lab02.html'),
         lab03: resolve('lab03.html'),
-        lab04: resolve('lab04.html'),
-        lab05: resolve('lab05.html')
+        lab04: resolve('lab04.html')
       }
     }
   }

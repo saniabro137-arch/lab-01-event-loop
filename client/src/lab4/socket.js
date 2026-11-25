@@ -10,11 +10,11 @@ export class RoomSocket extends EventTarget {
     this.joined = false;
   }
 
-  connect(name, room, options = {}) {
+  connect(name, room) {
     this.disconnect();
     this.active = true;
     this.delay = 500;
-    this.joinData = { type: 'join', name, room, ...options };
+    this.joinData = { type: 'join', name, room };
     this.open();
   }
 
@@ -32,7 +32,6 @@ export class RoomSocket extends EventTarget {
       `${protocol}//${location.host}/ws`
     );
 
-    socket.binaryType = 'arraybuffer';
     this.socket = socket;
     this.joined = false;
 
@@ -46,8 +45,7 @@ export class RoomSocket extends EventTarget {
     socket.onmessage = event => {
       if (this.socket !== socket) return;
 
-      const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
-      this.notify('received', event.data);
+      const data = JSON.parse(event.data);
 
       if (data.type === 'joined') {
         this.joined = true;
@@ -87,13 +85,6 @@ export class RoomSocket extends EventTarget {
       this.timer = setTimeout(() => this.open(), this.delay);
       this.delay = Math.min(this.delay * 2, 10000);
     };
-  }
-
-  sendFrame(frame) {
-    if (!this.joined || this.socket?.readyState !== WebSocket.OPEN ||
-        this.socket.bufferedAmount >= 65536) return false;
-    this.socket.send(frame);
-    return true;
   }
 
   send(message) {

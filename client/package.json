@@ -18,8 +18,5 @@
     "@eslint/js": "^9.25.0",
     "globals": "^16.0.0",
     "prettier": "^3.5.3"
-  },
-  "dependencies": {
-    "space-flight-shared": "1.0.0"
   }
 }

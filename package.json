@@ -5,8 +5,7 @@
   "type": "module",
   "workspaces": [
     "client",
-    "server",
-    "shared"
+    "server"
   ],
   "scripts": {
     "dev": "npm run dev -w client",
