@@ -1,3 +1,9 @@
 node_modules/
 dist/
 .DS_Store
+
+# Generated files
+*.zip
+server/logs/
+node_modules/
+dist/
