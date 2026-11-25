@@ -1,4 +1,4 @@
-import test from 'node:test';import assert from 'node:assert/strict';import {Vector2,Entity,Ship,World,asteroid,pickup,ttl,overlaps} from '../src/lab2/model.js';
+import test from 'node:test';import assert from 'node:assert/strict';import {Vector2,Entity,Ship,World,asteroid,pickup,ttl,overlaps} from '../src/lab2/model.ts';
 test('pure vectors and unique IDs',()=>{const v=new Vector2(1,2);assert.deepEqual(v.add(new Vector2(2,3)),new Vector2(3,5));assert.equal(v.x,1);assert.notEqual(new Entity('a').id,new Entity('a').id);});
 test('TTL and sweep',()=>{const w=new World();const e=w.spawn(new Entity('bullet'));e.components.push(ttl(.1));w.step(.2);assert.equal(w.entities.size,0);});
 test('fire and this',()=>{const w=new World(),s=w.spawn(new Ship());const f=s.fire;assert.throws(()=>f(w),TypeError);assert.equal(s.fire(w).owner,s.id);});

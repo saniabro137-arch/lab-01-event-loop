@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
-import { World } from '../../shared/sim/world.js';
+import { World } from 'space-flight-shared/world';
 import {
   encodeInput, decodeInput, encodeSnapshot, decodeSnapshot
-} from '../../shared/codec/index.js';
+} from 'space-flight-shared/codec';
 
 const world = new World(2026);
 for (let id = 1; id <= 4; id++) world.spawn(id);

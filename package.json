@@ -13,6 +13,12 @@
     "server": "npm run start -w server",
     "build": "npm run build -w client",
     "test": "npm run test --workspaces --if-present",
-    "lint": "npm run lint --workspaces --if-present"
+    "lint": "npm run lint --workspaces --if-present",
+    "typecheck": "tsc --noEmit -p ."
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.10",
+    "@types/ws": "^8.18.2",
+    "typescript": "~5.9.3"
   }
 }
