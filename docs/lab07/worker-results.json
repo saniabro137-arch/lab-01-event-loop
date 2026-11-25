@@ -1,0 +1,18 @@
+{
+  "samplesPerSize": 40,
+  "transfer": "Float64Array buffer",
+  "results": [
+    {
+      "decisions": 32,
+      "mainP95Ms": 0,
+      "workerEndToEndP95Ms": 0.2,
+      "workerPostCallP95Ms": 0.1
+    },
+    {
+      "decisions": 32768,
+      "mainP95Ms": 6.8,
+      "workerEndToEndP95Ms": 8.2,
+      "workerPostCallP95Ms": 0.1
+    }
+  ]
+}

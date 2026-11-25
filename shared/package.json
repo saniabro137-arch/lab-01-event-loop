@@ -1,0 +1,19 @@
+{
+  "name": "space-flight-shared",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./ship": "./sim/ship.ts",
+    "./world": "./sim/world.ts",
+    "./codec": "./codec/index.ts",
+    "./protocol": "./protocol/index.ts",
+    "./types": "./sim/types.ts"
+  },
+  "dependencies": {
+    "zod": "^4.6.7"
+  },
+  "scripts": {
+    "test": "node --test test/lab06.test.ts"
+  }
+}

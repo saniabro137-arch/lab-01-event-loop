@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Space Flight LAB 05</title>
+<style>
+body{background:#080f1b;color:#e3f3ff;font:16px system-ui;margin:24px}
+main{max-width:1000px;margin:auto}
+a{color:#63e8ff}
+button,input,select{padding:10px;margin:5px;background:#164c68;color:white;border:1px solid #34516b;border-radius:6px}
+button{cursor:pointer}
+.panel{border:1px solid #34516b;border-radius:12px;padding:20px;margin-top:20px;background:#0b1524}
+#messages{height:300px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere}
+#status{color:#63e8ff}
+
+canvas{display:block;width:100%;background:#101e30;border:1px solid #34516b;border-radius:8px}
+#netgraph{color:#63e8ff;font-family:monospace;white-space:pre-wrap}
+input[type=number]{width:4.5em}
+</style>
+</head>
+<body>
+<main>
+<h1>SPACE FLIGHT / LAB 05</h1>
+<nav>
+<a href="/">LAB 01</a> ·
+<a href="/lab02.html">LAB 02</a> ·
+<a href="/lab03.html">LAB 03</a>
+ · <a href="/lab04.html">LAB 04</a></nav>
+
+<section class="panel">
+  <p>W / ↑ — тяга · A / ← і D / → — поворот · Space — постріл</p>
+  <canvas id="arena" width="1000" height="600" tabindex="0" aria-label="Ігрове поле"></canvas>
+  <p id="netgraph" aria-live="off">Очікуємо підключення</p>
+  <div>
+    <label><input id="prediction" type="checkbox" checked> Передбачення</label>
+    <label>Затримка, мс <input id="latency" type="number" min="0" max="500" value="100"></label>
+    <label>Розкид, мс <input id="jitter" type="number" min="0" max="200" value="30"></label>
+    <label>Втрата, % <input id="drop" type="number" min="0" max="100" value="2"></label>
+    <label>Інтерполяція, мс <input id="interpolation" type="number" min="0" max="1000" value="180"></label>
+  </div>
+</section>
+
+<section class="panel">
+<h2>WebSocket Lobby</h2>
+<p id="status">Відключено</p>
+<input id="name" placeholder="Ім'я гравця" maxlength="30">
+<input id="room" placeholder="Назва кімнати" value="Alpha" maxlength="30">
+<button id="join">Join</button>
+<button id="leave">Leave</button>
+<button id="refresh">Оновити кімнати</button>
+<h3>Доступні кімнати</h3>
+<div id="rooms"></div>
+<h3>Гравці</h3>
+<div id="players"></div>
+</section>
+
+<section class="panel">
+<h2>Чат кімнати</h2>
+<div id="messages"></div>
+<form id="chat">
+<input id="text" placeholder="Введіть повідомлення" maxlength="500" required>
+<button>Надіслати</button>
+</form>
+</section>
+</main>
+<script type="module" src="/src/lab5/main.ts"></script>
+</body>
+</html>

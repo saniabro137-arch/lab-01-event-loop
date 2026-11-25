@@ -1,0 +1,46 @@
+
+.lab07-profiles/browser-before.cpuprofile
+┌─────────────┬──────────┐
+│ (index)     │ Values   │
+├─────────────┼──────────┤
+│ sampledMs   │ 15104.04 │
+│ idleMs      │ 14084.54 │
+│ gcSampledMs │ 19.75    │
+└─────────────┴──────────┘
+┌─────────┬─────────────────────────────────────────────┬────────┐
+│ (index) │ location                                    │ selfMs │
+├─────────┼─────────────────────────────────────────────┼────────┤
+│ 0       │ 'ee — /assets/main-CY33nNNq.js:1'           │ 22.89  │
+│ 1       │ 'T — /assets/lab05-BD0_Qiq1.js:1'           │ 18.52  │
+│ 2       │ 'm — /assets/lab05-BD0_Qiq1.js:1'           │ 13.47  │
+│ 3       │ 'v — /assets/lab05-BD0_Qiq1.js:1'           │ 12.72  │
+│ 4       │ 'P — /assets/lab05-BD0_Qiq1.js:3'           │ 9.38   │
+│ 5       │ 'le — /assets/main-CY33nNNq.js:1'           │ 8.2    │
+│ 6       │ '(anonymous) — /assets/lab05-BD0_Qiq1.js:1' │ 7.62   │
+│ 7       │ 'y — /assets/lab05-BD0_Qiq1.js:1'           │ 7.56   │
+│ 8       │ 'X — /assets/lab05-BD0_Qiq1.js:1'           │ 6.37   │
+│ 9       │ '(anonymous) — /assets/lab05-BD0_Qiq1.js:3' │ 4.66   │
+└─────────┴─────────────────────────────────────────────┴────────┘
+
+.lab07-profiles/server-before.cpuprofile
+┌─────────────┬──────────┐
+│ (index)     │ Values   │
+├─────────────┼──────────┤
+│ sampledMs   │ 20415.59 │
+│ idleMs      │ 19439.66 │
+│ gcSampledMs │ 29.84    │
+└─────────────┴──────────┘
+┌─────────┬─────────────────────────────────────────────────────────────────┬────────┐
+│ (index) │ location                                                        │ selfMs │
+├─────────┼─────────────────────────────────────────────────────────────────┼────────┤
+│ 0       │ 'compileSourceTextModule — node:internal/modules/esm/utils:317' │ 33.9   │
+│ 1       │ '__require — node:internal/deps/amaro/dist/index:8'             │ 24.11  │
+│ 2       │ 'compileForInternalLoader — node:internal/bootstrap/realm:383'  │ 23.34  │
+│ 3       │ 'doWrite — node:internal/streams/writable:589'                  │ 14.63  │
+│ 4       │ 'checkError — node:internal/streams/destroy:33'                 │ 12.9   │
+│ 5       │ '(anonymous) — server/src/websocket.ts:92'                      │ 11.45  │
+│ 6       │ 'step — server/src/match.ts:72'                                 │ 9.58   │
+│ 7       │ '__require — node:internal/deps/undici/undici:5'                │ 9.33   │
+│ 8       │ 'Socket.read — node:net:1131'                                   │ 9.17   │
+│ 9       │ '(anonymous) — server/src/index.ts:54'                          │ 9.09   │
+└─────────┴─────────────────────────────────────────────────────────────────┴────────┘
