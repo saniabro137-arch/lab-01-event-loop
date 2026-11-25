@@ -1,0 +1,23 @@
+{
+  "scenario": "2 clients, Binary and JSON, player holds W + D + Space",
+  "durationSeconds": 15,
+  "frameInterval": {
+    "samples": 889,
+    "p50Ms": 16.7,
+    "p95Ms": 16.8,
+    "p99Ms": 33.2
+  },
+  "sampledServerTick": {
+    "samples": 449,
+    "p50Ms": 0.209,
+    "p95Ms": 1.185,
+    "p99Ms": 1.955
+  },
+  "frameWork": {
+    "samples": 972,
+    "p50Ms": 0.2,
+    "p95Ms": 1.8,
+    "p99Ms": 2.5
+  },
+  "majorGC": 0
+}

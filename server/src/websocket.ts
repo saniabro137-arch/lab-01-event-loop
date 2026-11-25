@@ -1,3 +1,4 @@
+import { startHeartbeat } from './heartbeat.ts';
 import { randomUUID } from 'node:crypto';
 import { once } from 'node:events';
 import type { Server } from 'node:http';
@@ -21,7 +22,7 @@ export function setupWebSocket(server: Server, rooms: Map<string, Room>) {
   const configured = new WeakSet<Room>();
   const pendingLogs = new Set<Promise<void>>();
   const loggers = new Set<() => Promise<void>>();
-  const missedPongs = new WeakMap<WebSocket, number>();
+  const heartbeat = startHeartbeat(wss.clients, config.pingInterval, WebSocket.OPEN);
 
   function send(socket: WebSocket, data: object): void {
     if (socket.readyState === WebSocket.OPEN &&
@@ -85,7 +86,7 @@ export function setupWebSocket(server: Server, rooms: Map<string, Room>) {
       gameId = undefined;
     }
 
-    socket.on('pong', () => missedPongs.set(socket, 0));
+    socket.on('pong', () => heartbeat.pong(socket));
     socket.on('error', error => console.error('WebSocket:', error.message));
 
     socket.on('message', (raw, binary) => {
@@ -201,20 +202,8 @@ export function setupWebSocket(server: Server, rooms: Map<string, Room>) {
     });
   });
 
-  const heartbeat = setInterval(() => {
-    for (const socket of wss.clients) {
-      if (socket.readyState !== WebSocket.OPEN) continue;
-      const missed = missedPongs.get(socket) ?? 0;
-      if (missed >= 2) socket.terminate();
-      else {
-        missedPongs.set(socket, missed + 1);
-        socket.ping();
-      }
-    }
-  }, config.pingInterval);
-
   wss.on('error', error => console.error('WSS:', error.message));
-  wss.on('close', () => clearInterval(heartbeat));
+  wss.on('close', () => heartbeat.stop());
 
   return Object.assign(wss, {
     async flushLogs() {

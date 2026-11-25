@@ -78,13 +78,15 @@ export class Match {
 
     const inputs = new Map<EntityId, CombatInput>();
     for (const [id, player] of this.players) {
-      if (!player.pending.size) continue;
-      const seq = SeqSchema.parse(Math.min(...player.pending.keys()));
-      const input = player.pending.get(seq);
+      let input: CombatInput | undefined;
+      for (const candidate of player.pending.values()) {
+        if (!input || candidate.seq < input.seq) input = candidate;
+      }
       if (!input) continue;
+
       inputs.set(id, input);
-      player.pending.delete(seq);
-      player.lastProcessedSeq = seq;
+      player.pending.delete(input.seq);
+      player.lastProcessedSeq = input.seq;
     }
 
     this.world.step(inputs);

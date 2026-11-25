@@ -1,3 +1,4 @@
+import { reconcileSnapshot } from './reconciliation.ts';
 import { socket } from '../lab4/main.ts';
 import { lerpAngle } from 'space-flight-shared/ship';
 import { STEP_MS, advanceBullets, combatStep } from 'space-flight-shared/world';
@@ -106,18 +107,14 @@ socket.subscribe('status', () => {
 });
 
 function reconcile(session: Session, snapshot: SnapshotMessage, measure = true) {
-  const authoritative = snapshot.ships.find(ship => ship.id === session.id);
-  if (!authoritative) return;
+  const result = reconcileSnapshot(snapshot, session.id, session.pending, prediction.checked);
+  if (!result) return;
 
   const previous = session.localShip;
-  session.pending = session.pending.filter(input => input.seq > snapshot.lastProcessedSeq);
-  session.localShip = authoritative;
-  session.localBullets = snapshot.bullets.filter(bullet => bullet.owner === session.id);
-
+  session.pending = result.pending;
+  session.localShip = result.ship;
+  session.localBullets = result.bullets;
   if (!prediction.checked) return;
-  for (const input of session.pending) {
-    predict(session, input);
-  }
 
   if (previous && measure) {
     const dx = previous.x - session.localShip.x;
@@ -212,10 +209,14 @@ function interpolate<T extends EntitySnapshot>(entity: T, next: T, ratio: number
   }
 }
 
+const shipIndex = new WeakMap<SnapshotMessage, Map<string | number, ShipSnapshot>>();
+const bulletIndex = new WeakMap<SnapshotMessage, Map<string | number, BulletSnapshot>>();
+
 function remoteEntities<T extends EntitySnapshot>(
   session: Session,
   select: (snapshot: SnapshotMessage) => readonly T[],
   key: (entity: T) => string | number,
+  cache: WeakMap<SnapshotMessage, Map<string | number, T>>,
   isOwn: (entity: T) => boolean
 ): T[] {
   const time = Date.now() + (session.clockOffset ?? 0) - setting('interpolation');
@@ -231,9 +232,15 @@ function remoteEntities<T extends EntitySnapshot>(
   if (!a || !b) return [];
   const ratio = (time - a.time) / (b.time - a.time);
 
-  const nextById = new Map(select(b).map(entity => [key(entity), entity]));
+  let nextById = cache.get(b);
+  if (!nextById) {
+    nextById = new Map();
+    for (const entity of select(b)) nextById.set(key(entity), entity);
+    cache.set(b, nextById);
+  }
+  const lookup = nextById;
   return select(a).filter(entity => !isOwn(entity)).map(entity => {
-    const next = nextById.get(key(entity));
+    const next = lookup.get(key(entity));
     return next ? interpolate(entity, next, ratio) : entity;
   });
 }
@@ -275,7 +282,10 @@ function updateNetgraph(session: Session, now: number) {
   session.measuredAt = now;
 }
 
+const profileFrames = new URLSearchParams(location.search).get('profile') === '1';
+
 function frame(now: number) {
+  const workStart = profileFrames ? performance.now() : 0;
   const elapsed = now - lastFrame;
   lastFrame = now;
   ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -299,10 +309,10 @@ function frame(now: number) {
       game.dy *= decay;
       const active = game;
       const ships = remoteEntities(active, snapshot => snapshot.ships,
-        ship => ship.id, ship => ship.id === active.id);
+        ship => ship.id, shipIndex, ship => ship.id === active.id);
       for (const ship of ships) drawShip(ship, false);
       const bullets = remoteEntities(active, snapshot => snapshot.bullets,
-        bullet => `${bullet.owner}:${bullet.seq}`, bullet => bullet.owner === active.id);
+        bullet => `${bullet.owner}:${bullet.seq}`, bulletIndex, bullet => bullet.owner === active.id);
       for (const bullet of bullets.concat(game.localBullets)) {
         ctx.fillStyle = bullet.owner === game.id ? '#63e8ff' : '#ffab73';
         ctx.beginPath();
@@ -313,6 +323,11 @@ function frame(now: number) {
     }
 
     updateNetgraph(game, now);
+  }
+  if (profileFrames) {
+    performance.measure('lab07-frame-work', {
+      start: workStart, end: performance.now()
+    });
   }
   requestAnimationFrame(frame);
 }

@@ -12,13 +12,25 @@
     "dev": "npm run dev -w client",
     "server": "npm run start -w server",
     "build": "npm run build -w client",
-    "test": "npm run test --workspaces --if-present",
+    "test": "npm run test:legacy && npm run test:vitest",
     "lint": "npm run lint --workspaces --if-present",
-    "typecheck": "tsc --noEmit -p ."
+    "typecheck": "tsc --noEmit -p .",
+    "test:vitest": "vitest run shared/vitest client/vitest server/vitest",
+    "test:coverage": "vitest run shared/vitest --coverage --coverage.include=shared/sim/** --coverage.include=shared/codec/** --coverage.include=shared/protocol/** --coverage.reporter=text --coverage.reporter=html --coverage.thresholds.lines=85",
+    "test:legacy": "npm run test --workspaces --if-present",
+    "test:e2e": "playwright test",
+    "test:e2e:local": "npm run build && npm run test:e2e",
+    "lint:typed": "eslint --config eslint.lab07.config.mjs client/src server/src shared"
   },
   "devDependencies": {
+    "@playwright/test": "^1.65.1",
     "@types/node": "^26.6.10",
     "@types/ws": "^8.18.2",
-    "typescript": "~5.9.3"
+    "@vitest/coverage-v8": "^5.1.2",
+    "eslint": "^9.39.5",
+    "fast-check": "^4.11.0",
+    "typescript": "~5.9.3",
+    "typescript-eslint": "^8.74.0",
+    "vitest": "^5.1.2"
   }
 }

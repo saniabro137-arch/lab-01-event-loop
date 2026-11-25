@@ -13,7 +13,7 @@ interface BaselineState {
   snapshot(): unknown;
 }
 
-test('World matches Lab 05 on each of 1000 ticks', async () => {
+void test('World matches Lab 05 on each of 1000 ticks', async () => {
   const read = (path: string) =>
     execFileSync('git', ['show', 'lab-05:' + path], { encoding: 'utf8' });
   const url = (source: string) =>
@@ -55,7 +55,7 @@ test('World matches Lab 05 on each of 1000 ticks', async () => {
   }
 });
 
-test('JSON and DataView validate incoming packets', () => {
+void test('JSON and DataView validate incoming packets', () => {
   assert.equal(parseClientJSON('{broken').success, false);
   assert.equal(parseClientMessage({ type: 'chat', text: '   ' }).success, false);
 

@@ -79,7 +79,7 @@ socket.subscribe('message', data => {
   }
 
   renderPlayers();
-  refresh();
+  void refresh();
 });
 
 $('join').onclick = async () => {
@@ -135,4 +135,4 @@ $('chat').onsubmit = event => {
   }
 };
 
-refresh();
+void refresh();

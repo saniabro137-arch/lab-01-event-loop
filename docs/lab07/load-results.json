@@ -1,0 +1,44 @@
+{
+  "durationMs": 5000,
+  "tickBudgetMs": 33.333333333333336,
+  "minSnapshotsPerSecond": 27,
+  "maxPassingMatches": 16,
+  "results": [
+    {
+      "matches": 1,
+      "bots": 2,
+      "sampledTicks": 151,
+      "p99TickMs": 0.355,
+      "p99JitterMs": 1.991,
+      "minSnapshotsPerSecond": 29.88,
+      "passed": true
+    },
+    {
+      "matches": 4,
+      "bots": 8,
+      "sampledTicks": 602,
+      "p99TickMs": 0.193,
+      "p99JitterMs": 2.097,
+      "minSnapshotsPerSecond": 29.96,
+      "passed": true
+    },
+    {
+      "matches": 8,
+      "bots": 16,
+      "sampledTicks": 1201,
+      "p99TickMs": 0.143,
+      "p99JitterMs": 2.126,
+      "minSnapshotsPerSecond": 29.99,
+      "passed": true
+    },
+    {
+      "matches": 16,
+      "bots": 32,
+      "sampledTicks": 2408,
+      "p99TickMs": 0.119,
+      "p99JitterMs": 2.223,
+      "minSnapshotsPerSecond": 29.96,
+      "passed": true
+    }
+  ]
+}
