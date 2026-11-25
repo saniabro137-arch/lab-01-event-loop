@@ -1,4 +1,7 @@
 import { createMatchLogger } from './logger.js';
+import { Match } from './match.js';
+import { decodeInput, encodeSnapshot } from 'space-flight-shared/codec';
+import { FIRE, LEFT, RIGHT, THRUST, validInputs } from 'space-flight-shared/protocol';
 import { config } from './config.js';
 import { randomUUID } from 'node:crypto';
 import { once } from 'node:events';
@@ -25,7 +28,7 @@ export function setupWebSocket(server, rooms) {
       socket.readyState === WebSocket.OPEN &&
       socket.bufferedAmount < 65536
     ) {
-      socket.send(JSON.stringify(data));
+      socket.send(data instanceof ArrayBuffer ? data : JSON.stringify(data));
     }
   }
 
@@ -95,6 +98,17 @@ export function setupWebSocket(server, rooms) {
 
   wss.on('connection', socket => {
     let room = null;
+    let gameId = null;
+    let codec = 'binary';
+    let inputTokens = 24;
+    let lastInputAt = performance.now();
+
+    function leaveGame() {
+      if (gameId === null) return;
+      room.gameSockets.delete(gameId);
+      room.match.removePlayer(gameId);
+      gameId = null;
+    }
     let count = 0;
     let windowStart = Date.now();
 
@@ -120,18 +134,10 @@ export function setupWebSocket(server, rooms) {
         windowStart = Date.now();
       }
 
-      if (++count > 10) {
-        return socket.close(1008, 'Rate limit');
-      }
-
-      if (binary) {
-        return socket.close(1003, 'Text required');
-      }
-
       let msg;
 
       try {
-        msg = JSON.parse(raw.toString());
+        msg = binary ? decodeInput(raw) : JSON.parse(raw.toString());
       } catch {
         return socket.close(1007, 'Invalid JSON');
       }
@@ -139,6 +145,35 @@ export function setupWebSocket(server, rooms) {
       if (!msg || typeof msg !== 'object' ||
           Array.isArray(msg)) {
         return socket.close(1008, 'Invalid message');
+      }
+
+      if (msg.type === 'input' && gameId !== null) {
+        const now = performance.now();
+        inputTokens = Math.min(24, inputTokens + (now - lastInputAt) * 0.045);
+        lastInputAt = now;
+        if (inputTokens < 1) return socket.close(1008, 'Input rate limit');
+        inputTokens--;
+        if (binary !== (codec === 'binary') || !validInputs(msg)) {
+          return socket.close(1008, 'Invalid game input');
+        }
+
+        for (const { seq, buttons } of msg.inputs) {
+          room.match.receiveInput(gameId, {
+            seq,
+            thrust: Boolean(buttons & THRUST),
+            left: Boolean(buttons & LEFT),
+            right: Boolean(buttons & RIGHT),
+            fire: Boolean(buttons & FIRE)
+          });
+        }
+        return;
+      }
+
+      if (++count > 10) return socket.close(1008, 'Rate limit');
+
+      if (msg.type === 'ping' && gameId !== null && Number.isFinite(msg.sent)) {
+        send(socket, { type: 'pong', sent: msg.sent, time: Date.now() });
+        return;
       }
 
       if (msg.type === 'join') {
@@ -154,6 +189,27 @@ export function setupWebSocket(server, rooms) {
         }
 
         room = rooms.get(msg.room);
+        if (msg.game === true) {
+          codec = msg.codec === 'json' ? 'json' : 'binary';
+          if (!room.match) {
+            const gameSockets = new Map();
+            room.gameSockets = gameSockets;
+            room.match = new Match((id, snapshot) => {
+              const peer = gameSockets.get(id);
+              if (peer) send(peer.socket, peer.codec === 'json' ? snapshot : encodeSnapshot(snapshot));
+            });
+          }
+
+          if (room.gameSockets.size >= 4) {
+            room = null;
+            return socket.close(1008, 'Match full');
+          }
+
+          gameId = 1;
+          while (room.gameSockets.has(gameId)) gameId++;
+          room.gameSockets.set(gameId, { socket, codec });
+          room.match.addPlayer(gameId);
+        }
         configureRoom(room);
         clearTimeout(joinTimer);
 
@@ -162,8 +218,10 @@ export function setupWebSocket(server, rooms) {
         send(socket, {
           type: 'joined',
           room: room.name,
-          players: [...room.players.values()]
+          players: [...room.players.values()],
+          game: gameId === null ? undefined : { id: gameId, seed: room.match.seed }
         });
+        if (gameId !== null) room.match.start();
 
       } else if (msg.type === 'chat') {
         if (
@@ -182,6 +240,7 @@ export function setupWebSocket(server, rooms) {
           return socket.close(1008, 'Not joined');
         }
 
+        leaveGame();
         room.leave(socket);
         room = null;
         socket.close(1000, 'Left room');
@@ -193,6 +252,7 @@ export function setupWebSocket(server, rooms) {
 
     socket.on('close', () => {
       clearTimeout(joinTimer);
+      leaveGame();
       if (room) room.leave(socket);
     });
   });

@@ -1,0 +1,12 @@
+{
+  "name": "space-flight-shared",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./ship": "./sim/ship.js",
+    "./world": "./sim/world.js",
+    "./codec": "./codec/index.js",
+    "./protocol": "./protocol/index.js"
+  }
+}
