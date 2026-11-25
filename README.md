@@ -121,3 +121,35 @@ Promise має pending, fulfilled, rejected. then повертає новий Pr
 - npm run lint — успішно.
 - npm run build — успішно.
 - Vite: 23 модулі, час збірки 348 мс.
+
+## Галерея результатів LAB 03
+
+### Початковий екран
+![Loading](docs/lab03/01-loading.png)
+
+### Завантаження ресурсів та лобі
+![Lobby](docs/lab03/02-lobby.png)
+
+### Ігровий процес
+![Game](docs/lab03/03-game.png)
+
+### Помилка завантаження спрайта
+![Sprite error](docs/lab03/04-sprite-error.png)
+
+### Таймаут мережі
+![Timeout](docs/lab03/05-timeout.png)
+
+### Скасування завантаження
+![Abort](docs/lab03/06-abort.png)
+
+### Битий JSON
+![JSON error](docs/lab03/07-json.png)
+
+### Sequential vs concurrent
+![Benchmark](docs/lab03/08-benchmark.png)
+
+### Порядок мікрозадач
+![Microtasks](docs/lab03/09-microtasks.png)
+
+### Успішна збірка проєкту
+![Build](docs/lab03/10-build.png)
