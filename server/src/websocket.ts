@@ -1,4 +1,5 @@
 import { startHeartbeat } from './heartbeat.ts';
+import { log, wsBytes, wsMessages, wsRejected } from './observability.ts';
 import { randomUUID } from 'node:crypto';
 import { once } from 'node:events';
 import type { Server } from 'node:http';
@@ -18,7 +19,42 @@ function errorText(error: unknown): string {
 }
 
 export function setupWebSocket(server: Server, rooms: Map<string, Room>) {
-  const wss = new WebSocketServer({ server, path: '/ws', maxPayload: config.maxPayload });
+  const connectionsByIp = new Map<string, number>();
+  const address = (ip: string | undefined) => (ip ?? '').replace(/^::ffff:/, '');
+
+  function isLoopback(ip: string): boolean {
+    return ip === '127.0.0.1' || ip === '::1';
+  }
+
+  function acceptsOrigin(origin: string | undefined, ip: string): boolean {
+    if (origin === undefined) return isLoopback(ip);
+    if (config.allowedOrigins.size) return config.allowedOrigins.has(origin);
+    try {
+      const url = new URL(origin);
+      return isLoopback(ip) && (url.protocol === 'http:' || url.protocol === 'https:') &&
+        ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname);
+    } catch {
+      return false;
+    }
+  }
+
+  const wss = new WebSocketServer({
+    server,
+    path: '/ws',
+    maxPayload: config.maxPayload,
+    verifyClient: ({ req }, done) => {
+      const ip = address(req.socket.remoteAddress);
+      if (!acceptsOrigin(req.headers.origin, ip)) {
+        wsRejected.inc({ reason: 'origin' });
+        return done(false, 403, 'Origin not allowed');
+      }
+      if ((connectionsByIp.get(ip) ?? 0) >= config.maxConnectionsPerIp) {
+        wsRejected.inc({ reason: 'ip_limit' });
+        return done(false, 429, 'Too many connections');
+      }
+      done(true);
+    }
+  });
   const configured = new WeakSet<Room>();
   const pendingLogs = new Set<Promise<void>>();
   const loggers = new Set<() => Promise<void>>();
@@ -27,7 +63,11 @@ export function setupWebSocket(server: Server, rooms: Map<string, Room>) {
   function send(socket: WebSocket, data: object): void {
     if (socket.readyState === WebSocket.OPEN &&
         socket.bufferedAmount < config.maxBufferedAmount) {
-      socket.send(data instanceof ArrayBuffer ? data : JSON.stringify(data));
+      const payload = data instanceof ArrayBuffer ? data : JSON.stringify(data);
+      socket.send(payload);
+      wsMessages.inc({ direction: 'out' });
+      wsBytes.inc({ direction: 'out' },
+        typeof payload === 'string' ? Buffer.byteLength(payload) : payload.byteLength);
     }
   }
 
@@ -67,7 +107,14 @@ export function setupWebSocket(server: Server, rooms: Map<string, Room>) {
     });
   }
 
-  wss.on('connection', socket => {
+  wss.on('connection', (socket, request) => {
+    const ip = address(request.socket.remoteAddress);
+    connectionsByIp.set(ip, (connectionsByIp.get(ip) ?? 0) + 1);
+    socket.once('close', () => {
+      const remaining = (connectionsByIp.get(ip) ?? 1) - 1;
+      if (remaining > 0) connectionsByIp.set(ip, remaining);
+      else connectionsByIp.delete(ip);
+    });
     let room: Room | undefined;
     let gameId: EntityId | undefined;
     let codec: Codec = 'binary';
@@ -94,18 +141,22 @@ export function setupWebSocket(server: Server, rooms: Map<string, Room>) {
       const payload = Array.isArray(raw) ? Buffer.concat(raw) :
         raw instanceof ArrayBuffer ? Buffer.from(raw) : raw;
 
+      wsMessages.inc({ direction: 'in' });
+      wsBytes.inc({ direction: 'in' }, payload.byteLength);
       let msg: ClientMessage;
       if (binary) {
         try {
           msg = decodeInput(payload);
-        } catch (error: unknown) {
-          console.warn('Invalid binary packet:', errorText(error));
+        } catch {
+          wsRejected.inc({ reason: 'invalid_binary' });
+          log.warn({ roomId: room?.name, playerId: gameId }, 'Invalid binary packet');
           return socket.close(1007, 'Invalid binary packet');
         }
       } else {
         const parsed = parseClientJSON(payload.toString('utf8'));
         if (!parsed.success) {
-          console.warn('Invalid client message:', parsed.error.issues[0]?.code);
+          wsRejected.inc({ reason: 'invalid_message' });
+          log.warn({ roomId: room?.name, playerId: gameId }, 'Invalid client message');
           return socket.close(1007, 'Invalid client message');
         }
         msg = parsed.data;
@@ -116,7 +167,10 @@ export function setupWebSocket(server: Server, rooms: Map<string, Room>) {
           count = 0;
           windowStart = Date.now();
         }
-        if (++count > config.rateLimit) return socket.close(1008, 'Rate limit');
+        if (++count > config.rateLimit) {
+          wsRejected.inc({ reason: 'control_rate' });
+          return socket.close(1008, 'Rate limit');
+        }
       }
 
       switch (msg.type) {
@@ -128,7 +182,10 @@ export function setupWebSocket(server: Server, rooms: Map<string, Room>) {
           const now = performance.now();
           inputTokens = Math.min(24, inputTokens + (now - lastInputAt) * 0.045);
           lastInputAt = now;
-          if (inputTokens < 1) return socket.close(1008, 'Input rate limit');
+          if (inputTokens < 1) {
+            wsRejected.inc({ reason: 'input_rate' });
+            return socket.close(1008, 'Input rate limit');
+          }
           inputTokens--;
 
           for (const { seq, buttons } of msg.inputs) {
@@ -145,6 +202,10 @@ export function setupWebSocket(server: Server, rooms: Map<string, Room>) {
         case 'join': {
           const selected = rooms.get(msg.room);
           if (room || !selected) return socket.close(1008, 'Invalid join');
+          if (selected.size >= config.maxRoomPlayers) {
+            wsRejected.inc({ reason: 'room_full' });
+            return socket.close(1008, 'Room full');
+          }
           let game: { id: EntityId; seed: number } | undefined;
           if (msg.game === true) {
             if (selected.gameSockets.size >= MAX_PLAYERS) {
@@ -166,6 +227,7 @@ export function setupWebSocket(server: Server, rooms: Map<string, Room>) {
           configureRoom(selected);
           clearTimeout(joinTimer);
           selected.join(socket, msg.name);
+          log.info({ roomId: selected.name, playerId: gameId }, 'Player joined');
           send(socket, {
             type: 'joined', room: selected.name,
             players: [...selected.players.values()], game
@@ -206,6 +268,9 @@ export function setupWebSocket(server: Server, rooms: Map<string, Room>) {
   wss.on('close', () => heartbeat.stop());
 
   return Object.assign(wss, {
+    notifyShutdown() {
+      for (const socket of wss.clients) send(socket, { type: 'shutdown' });
+    },
     async flushLogs() {
       await Promise.all(pendingLogs);
       await Promise.all([...loggers].map(close => close()));

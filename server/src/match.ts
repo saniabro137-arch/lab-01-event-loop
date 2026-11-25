@@ -1,4 +1,5 @@
 import { randomBytes } from 'node:crypto';
+import { tickDuration } from './observability.ts';
 import { STEP_MS, World } from 'space-flight-shared/world';
 import { SeqSchema } from 'space-flight-shared/types';
 import type { CombatInput, EntityId, Seq } from 'space-flight-shared/types';
@@ -107,6 +108,7 @@ export class Match {
       jitterMs: started - this.target
     };
 
+    tickDuration.observe(this.stats.durationMs / 1000);
     this.target += STEP_MS;
     if (this.target < started - 4 * STEP_MS) {
       this.target = started + STEP_MS;

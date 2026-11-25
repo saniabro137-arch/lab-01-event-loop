@@ -116,6 +116,7 @@ export const RoomListSchema = z.array(z.object({
 }));
 
 export const ServerMessageSchema = z.discriminatedUnion('type', [
+  z.object({ type: z.literal('shutdown') }),
   SnapshotSchema,
   z.object({
     type: z.literal('joined'),

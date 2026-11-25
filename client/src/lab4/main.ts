@@ -69,6 +69,10 @@ socket.subscribe('message', data => {
     case 'chat':
       log(`${data.name}: ${data.text}`);
       break;
+    case 'shutdown':
+      log('Сервер завершує роботу.');
+      return;
+
     case 'snapshot':
     case 'pong':
       return;

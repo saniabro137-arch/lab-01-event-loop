@@ -1,0 +1,19 @@
+services:
+  game:
+    image: space-flight:lab08
+    build:
+      context: .
+      args:
+        APP_VERSION: lab08-local
+    ports:
+      - "127.0.0.1:3081:3000"
+    environment:
+      LOG_LEVEL: info
+      LOG_DIR: /app/logs
+      ALLOWED_ORIGINS: "http://localhost:3081,http://127.0.0.1:3081"
+    volumes:
+      - game-logs:/app/logs
+    stop_grace_period: 10s
+
+volumes:
+  game-logs:

@@ -13,6 +13,7 @@ import { fileURLToPath } from 'node:url';
 import { pipeline } from 'node:stream/promises';
 import { config } from './config.ts';
 import { Room } from './room.ts';
+import { activePlayers, activeRooms, log, metrics } from './observability.ts';
 
 const rooms = new Map<string, Room>();
 const clientDir = fileURLToPath(
@@ -65,10 +66,30 @@ const server = http.createServer(async (req, res) => {
       return json(res, 403, { error: 'Forbidden' });
     }
 
+    if (req.method === 'GET' && pathname === '/metrics') {
+      activeRooms.set(rooms.size);
+      let players = 0;
+      for (const room of rooms.values()) players += room.size;
+      activePlayers.set(players);
+      const body = await metrics.metrics();
+      res.writeHead(200, { 'Content-Type': metrics.contentType });
+      res.end(body);
+      return;
+    }
+
+    if (req.method === 'GET' && pathname === '/ready') {
+      const ready = !shuttingDown;
+      return json(res, ready ? 200 : 503, {
+        status: ready ? 'ready' : 'draining',
+        version
+      });
+    }
+
     if (req.method === 'GET' && pathname === '/health') {
       return json(res, 200, {
         status: 'ok',
-        uptime: process.uptime()
+        uptime: process.uptime(),
+        version
       });
     }
 
@@ -134,6 +155,10 @@ const server = http.createServer(async (req, res) => {
           });
         }
 
+        if (rooms.size >= config.maxRooms) {
+          return json(res, 503, { error: 'Room limit reached' });
+        }
+
         const room = getRoom(name);
         return json(res, 201, {
           name: room.name,
@@ -188,16 +213,17 @@ const server = http.createServer(async (req, res) => {
 const wss = setupWebSocket(server, rooms);
 
 server.listen(config.port, config.host, () => {
-  console.log(`Server running on port ${config.port}`);
+  log.info({ port: config.port, version }, 'Server listening');
 });
 
+const version = process.env.APP_VERSION?.trim() || 'dev';
 let shuttingDown = false;
 
 async function shutdown() {
   if (shuttingDown) return;
   shuttingDown = true;
 
-  console.log('Graceful shutdown started');
+  log.info('Graceful shutdown started');
 
   const httpClosed = new Promise<void>(resolve => {
     server.close(() => resolve());
@@ -207,6 +233,7 @@ async function shutdown() {
     wss.close(() => resolve());
   });
 
+  wss.notifyShutdown();
   for (const socket of wss.clients) {
     socket.close(1001, 'Server shutdown');
   }
@@ -224,11 +251,10 @@ async function shutdown() {
     await wss.flushLogs();
     await httpClosed;
 
-    console.log('Logs flushed successfully');
-    console.log('Server stopped');
+    log.info('Logs flushed and server stopped');
     process.exitCode = 0;
   } catch (error) {
-    console.error('Shutdown error:', error);
+    log.error({ err: error }, 'Shutdown failed');
     process.exitCode = 1;
   }
 }

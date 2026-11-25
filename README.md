@@ -417,3 +417,45 @@ CI запускає typecheck, типізований ESLint, тести, збі
 
 [Сирі дані навантаження](docs/lab07/load-results.json) ·
 [Замір Web Worker](docs/lab07/worker-results.json)
+
+---
+
+## LAB 08 — Docker and Containerization
+
+### Implemented features
+
+- Multi-stage Dockerfile
+- Docker Compose
+- Node.js 24 Alpine
+- Non-root container execution
+- Healthcheck
+- Prometheus metrics
+- Persistent Docker Volume
+- WebSocket communication
+- NDJSON Replay API
+- Graceful shutdown
+
+### Run application
+
+    docker compose up -d --build --wait
+
+Application: http://localhost:3081
+
+### Verification results
+
+| Check | Result |
+|---|---|
+| TypeScript | PASSED |
+| Build | PASSED |
+| Vitest | 66/66 PASSED |
+| Docker Healthcheck | Healthy |
+| WebSocket | PASSED |
+| Replay API | HTTP 200 OK |
+| Volume persistence | PASSED |
+| Graceful shutdown | Exit code 0 |
+
+### Documentation
+
+- [LAB 08 Documentation](docs/lab08/README.md)
+- [LAB 08 Screenshots](docs/lab08/screenshots/)
+
